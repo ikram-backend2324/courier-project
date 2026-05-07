@@ -1,0 +1,303 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ route.title }} - RouteAI{% endblock %}
+
+{% block extra_head %}
+<style>
+.route-status-bar { display:flex;align-items:center;gap:16px;padding:16px 20px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:20px;box-shadow:var(--shadow); }
+.point-list-item { display:flex;align-items:flex-start;gap:14px;padding:14px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:10px;background:var(--card);transition:all 0.2s; }
+.point-list-item:hover { border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light); }
+.seq-badge { width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0; }
+.seq-badge.ai-order { background:linear-gradient(135deg,#2563eb,#7c3aed);color:white; }
+.seq-badge.original { background:var(--bg);color:var(--text-muted);border:2px solid var(--border); }
+.ai-badge { display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:linear-gradient(135deg,#ede9fe,#dbeafe);color:#4c1d95;border-radius:20px;font-size:0.8rem;font-weight:700;border:1px solid #c4b5fd; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- ROUTE HEADER -->
+<div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+    <div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+            <a href="/routes/" style="color:var(--text-muted);text-decoration:none;font-size:0.875rem">
+                <i class="fas fa-arrow-left"></i>
+                {% if current_language == 'ru' %}Все маршруты{% elif current_language == 'uz' %}Barcha yo'nalishlar{% else %}All Routes{% endif %}
+            </a>
+        </div>
+        <h1 class="page-title">{{ route.title }}</h1>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">
+            <span class="badge badge-{{ route.status }}">{{ route.get_status_display }}</span>
+            <span style="color:var(--text-muted);font-size:0.875rem"><i class="fas fa-motorcycle" style="margin-right:4px"></i>{{ route.courier.name }}</span>
+            <span style="color:var(--text-muted);font-size:0.875rem"><i class="fas fa-calendar" style="margin-right:4px"></i>{{ route.created_at|date:"M d, Y H:i" }}</span>
+            {% if route.language %}
+            <span style="background:var(--bg);padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;border:1px solid var(--border)">
+                {{ route.language|upper }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+    <div style="display:flex;gap:8px">
+        {% if not route.ai_response %}
+        <button class="btn btn-primary" id="planAiBtn" onclick="planWithAI()">
+            <i class="fas fa-robot"></i>
+            {% if current_language == 'ru' %}Оптимизировать с ИИ{% elif current_language == 'uz' %}AI bilan optimallashtirish{% else %}Plan with AI{% endif %}
+        </button>
+        {% else %}
+        <button class="btn btn-outline" onclick="planWithAI()">
+            <i class="fas fa-redo"></i>
+            {% if current_language == 'ru' %}Повторить ИИ{% elif current_language == 'uz' %}AI ni qayta ishlatish{% else %}Re-run AI{% endif %}
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 400px;gap:20px;align-items:start">
+    <!-- LEFT -->
+    <div>
+        <!-- AI RESPONSE -->
+        <div id="aiSection">
+            {% if route.ai_response %}
+            <div class="ai-response-box">
+                <div class="ai-response-header">
+                    <i class="fas fa-robot" style="font-size:1.2rem"></i>
+                    {% if current_language == 'ru' %}Рекомендация ИИ{% elif current_language == 'uz' %}AI tavsiyasi{% else %}AI Route Recommendation{% endif %}
+                    <span class="ai-badge"><i class="fas fa-magic"></i> AI Optimized</span>
+                </div>
+                <div class="ai-response-content" id="aiResponseContent">{{ route.ai_response }}</div>
+            </div>
+            {% else %}
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-body" style="text-align:center;padding:32px">
+                    <div style="font-size:2.5rem;margin-bottom:12px">🤖</div>
+                    <div style="font-weight:700;margin-bottom:8px">
+                        {% if current_language == 'ru' %}ИИ ещё не запущен{% elif current_language == 'uz' %}AI hali ishlatilmagan{% else %}AI Not Run Yet{% endif %}
+                    </div>
+                    <p style="color:var(--text-muted);margin-bottom:16px;font-size:0.875rem">
+                        {% if current_language == 'ru' %}Нажмите «Оптимизировать с ИИ» для получения оптимального маршрута{% elif current_language == 'uz' %}Optimal yo'nalish olish uchun "AI bilan optimallashtirish" tugmasini bosing{% else %}Click "Plan with AI" to get the optimized route order{% endif %}
+                    </p>
+                    <button class="btn btn-primary" onclick="planWithAI()">
+                        <i class="fas fa-robot"></i>
+                        {% if current_language == 'ru' %}Оптимизировать с ИИ{% elif current_language == 'uz' %}AI bilan optimallashtirish{% else %}Plan with AI{% endif %}
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- DELIVERY POINTS -->
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-map-marked-alt" style="color:var(--primary);margin-right:8px"></i>
+                    {% if current_language == 'ru' %}Точки доставки{% elif current_language == 'uz' %}Yetkazib berish nuqtalari{% else %}Delivery Points{% endif %}
+                    <span style="background:var(--primary-light);color:var(--primary);padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;margin-left:8px">{{ points|length }}</span>
+                </h3>
+            </div>
+            <div class="card-body">
+                {% for point in points %}
+                <div class="point-list-item" id="point-item-{{ point.pk }}">
+                    <div class="seq-badge {% if point.optimized_sequence %}ai-order{% else %}original{% endif %}">
+                        {% if point.optimized_sequence %}{{ point.optimized_sequence }}{% else %}{{ forloop.counter }}{% endif %}
+                    </div>
+                    <div style="flex:1">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                            <strong style="font-size:0.9rem">Order #{{ point.order_number }}</strong>
+                            <span class="badge badge-{{ point.status }}">{{ point.get_status_display }}</span>
+                        </div>
+                        <div style="color:var(--text-muted);font-size:0.8rem;margin-bottom:4px">
+                            <i class="fas fa-map-marker-alt" style="color:var(--danger);margin-right:4px"></i>{{ point.address }}
+                        </div>
+                        {% if point.recipient_name %}
+                        <div style="font-size:0.8rem;color:var(--text-muted)">
+                            <i class="fas fa-user" style="margin-right:4px"></i>{{ point.recipient_name }}
+                            {% if point.recipient_phone %} &bull; {{ point.recipient_phone }}{% endif %}
+                        </div>
+                        {% endif %}
+                        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px">
+                            <i class="fas fa-crosshairs" style="margin-right:2px"></i>{{ point.lat|floatformat:4 }}, {{ point.lng|floatformat:4 }}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div style="text-align:center;padding:32px;color:var(--text-muted)">
+                    {% if current_language == 'ru' %}Точек доставки нет{% elif current_language == 'uz' %}Yetkazib berish nuqtalari yo'q{% else %}No delivery points{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT - MAP -->
+    <div style="position:sticky;top:calc(var(--nav-h) + 20px)">
+        <div class="card" style="margin-bottom:16px">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fas fa-map" style="color:var(--primary);margin-right:8px"></i>
+                {% if current_language == 'ru' %}Карта маршрута{% elif current_language == 'uz' %}Yo'nalish xaritasi{% else %}Route Map{% endif %}
+                </h3>
+            </div>
+            <div style="padding:0">
+                <div id="detailMap" style="height:450px;border-radius:0 0 var(--radius) var(--radius)"></div>
+            </div>
+        </div>
+
+        <!-- ROUTE INFO -->
+        <div class="card">
+            <div class="card-body">
+                <div style="font-weight:700;margin-bottom:12px">
+                    {% if current_language == 'ru' %}Информация о маршруте{% elif current_language == 'uz' %}Yo'nalish ma'lumotlari{% else %}Route Info{% endif %}
+                </div>
+                <div style="display:flex;flex-direction:column;gap:8px;font-size:0.875rem">
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:var(--text-muted)">
+                            {% if current_language == 'ru' %}Курьер{% elif current_language == 'uz' %}Kuryer{% else %}Courier{% endif %}
+                        </span>
+                        <strong>{{ route.courier.name }}</strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:var(--text-muted)">
+                            {% if current_language == 'ru' %}Транспорт{% elif current_language == 'uz' %}Transport{% else %}Vehicle{% endif %}
+                        </span>
+                        <strong>{{ route.courier.get_vehicle_display }}</strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:var(--text-muted)">
+                            {% if current_language == 'ru' %}Точек доставки{% elif current_language == 'uz' %}Yetkazib berish nuqtalari{% else %}Delivery Points{% endif %}
+                        </span>
+                        <strong>{{ points|length }}</strong>
+                    </div>
+                    {% if route.courier_start_address %}
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:var(--text-muted)">
+                            {% if current_language == 'ru' %}Старт{% elif current_language == 'uz' %}Boshlanish{% else %}Start{% endif %}
+                        </span>
+                        <strong style="text-align:right;max-width:180px;font-size:0.8rem">{{ route.courier_start_address }}</strong>
+                    </div>
+                    {% endif %}
+                    {% if route.notes %}
+                    <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px">
+                        <span style="color:var(--text-muted);display:block;margin-bottom:4px">
+                            {% if current_language == 'ru' %}Примечания{% elif current_language == 'uz' %}Izohlar{% else %}Notes{% endif %}
+                        </span>
+                        <span style="font-size:0.8rem">{{ route.notes }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- AI LOADING OVERLAY -->
+<div id="aiLoadingOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:none;align-items:center;justify-content:center">
+    <div style="background:white;border-radius:16px;padding:40px;text-align:center;max-width:360px;width:90%">
+        <div class="spinner" style="width:48px;height:48px;margin:0 auto 16px;border-width:3px"></div>
+        <div style="font-weight:700;font-size:1.1rem;margin-bottom:8px">
+            {% if current_language == 'ru' %}ИИ анализирует маршрут...{% elif current_language == 'uz' %}AI yo'nalishni tahlil qilmoqda...{% else %}AI is analyzing your route...{% endif %}
+        </div>
+        <p style="color:var(--text-muted);font-size:0.875rem">
+            {% if current_language == 'ru' %}Пожалуйста, подождите 10-30 секунд{% elif current_language == 'uz' %}Iltimos, 10-30 soniya kuting{% else %}This may take 10-30 seconds{% endif %}
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Init map
+const detailMap = L.map('detailMap').setView([41.2995, 69.2401], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors', maxZoom: 19
+}).addTo(detailMap);
+
+const startIcon = L.divIcon({
+    html: '<div style="background:#16a34a;color:white;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)">🏭</div>',
+    iconSize: [36, 36], iconAnchor: [18, 18], className: ''
+});
+
+function getIcon(n, isAI) {
+    const bg = isAI ? 'linear-gradient(135deg,#2563eb,#7c3aed)' : '#64748b';
+    return L.divIcon({
+        html: `<div style="background:${bg};color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)">${n}</div>`,
+        iconSize: [32, 32], iconAnchor: [16, 16], className: ''
+    });
+}
+
+const bounds = [];
+
+// Start marker
+{% if route.courier_start_lat and route.courier_start_lng %}
+const startPos = [{{ route.courier_start_lat }}, {{ route.courier_start_lng }}];
+L.marker(startPos, {icon: startIcon}).addTo(detailMap)
+    .bindPopup('<strong>🏭 Start: {{ route.courier.name }}</strong><br>{{ route.courier_start_address }}');
+bounds.push(startPos);
+{% endif %}
+
+// Delivery points
+const pts = [
+    {% for p in points %}
+    {id: {{ p.pk }}, lat: {{ p.lat }}, lng: {{ p.lng }}, num: {{ forloop.counter }}, seq: {{ p.optimized_sequence|default:forloop.counter }}, order: "{{ p.order_number }}", addr: "{{ p.address|escapejs }}", recipient: "{{ p.recipient_name|escapejs }}"},
+    {% endfor %}
+];
+
+pts.forEach(function(p) {
+    const pos = [p.lat, p.lng];
+    const marker = L.marker(pos, {icon: getIcon(p.seq, {{ 'true' if route.ai_response else 'false' }})}).addTo(detailMap);
+    marker.bindPopup(`<strong>Order #${p.order}</strong><br>${p.addr}${p.recipient ? '<br>👤 ' + p.recipient : ''}`);
+    bounds.push(pos);
+});
+
+if (bounds.length > 0) {
+    detailMap.fitBounds(bounds, {padding: [30, 30]});
+}
+
+// Draw route line if AI ran
+{% if route.ai_response %}
+if (pts.length > 1) {
+    // Sort by seq
+    const sorted = [...pts].sort((a, b) => a.seq - b.seq);
+    {% if route.courier_start_lat and route.courier_start_lng %}
+    sorted.unshift({lat: {{ route.courier_start_lat }}, lng: {{ route.courier_start_lng }}});
+    {% endif %}
+    const latlngs = sorted.map(p => [p.lat, p.lng]);
+    L.polyline(latlngs, {color: '#2563eb', weight: 3, opacity: 0.7, dashArray: '8,4'}).addTo(detailMap);
+}
+{% endif %}
+
+function planWithAI() {
+    const overlay = document.getElementById('aiLoadingOverlay');
+    overlay.style.display = 'flex';
+    const btn = document.getElementById('planAiBtn');
+    if (btn) btn.disabled = true;
+
+    fetch('/routes/{{ route.pk }}/plan-ai/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json'},
+    })
+    .then(r => r.json())
+    .then(data => {
+        overlay.style.display = 'none';
+        if (data.success) {
+            const aiSection = document.getElementById('aiSection');
+            aiSection.innerHTML = `
+                <div class="ai-response-box" style="margin-bottom:20px">
+                    <div class="ai-response-header">
+                        <i class="fas fa-robot" style="font-size:1.2rem"></i>
+                        {% if current_language == 'ru' %}Рекомендация ИИ{% elif current_language == 'uz' %}AI tavsiyasi{% else %}AI Route Recommendation{% endif %}
+                        <span class="ai-badge"><i class="fas fa-magic"></i> AI Optimized</span>
+                    </div>
+                    <div class="ai-response-content">${data.response}</div>
+                </div>`;
+        } else {
+            overlay.style.display = 'none';
+            alert('Error: ' + (data.error || 'Unknown error'));
+            if (btn) btn.disabled = false;
+        }
+    })
+    .catch(e => {
+        overlay.style.display = 'none';
+        alert('Network error: ' + e.message);
+        if (btn) btn.disabled = false;
+    });
+}
+</script>
+{% endblock %}

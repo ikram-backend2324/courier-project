@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{% if current_language == 'ru' %}Главная - RouteAI{% elif current_language == 'uz' %}Bosh sahifa - RouteAI{% else %}Dashboard - RouteAI{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">
+        {% if current_language == 'ru' %}Панель управления{% elif current_language == 'uz' %}Boshqaruv paneli{% else %}Dashboard{% endif %}
+    </h1>
+    <p class="page-subtitle">
+        {% if current_language == 'ru' %}Добро пожаловать в систему планирования маршрутов с ИИ{% elif current_language == 'uz' %}AI yordamida yo'nalish rejalashtirish tizimiga xush kelibsiz{% else %}Welcome to the AI-powered courier route planning system{% endif %}
+    </p>
+</div>
+
+<!-- STATS -->
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-icon blue"><i class="fas fa-route"></i></div>
+        <div>
+            <div class="stat-value">{{ total_routes }}</div>
+            <div class="stat-label">
+                {% if current_language == 'ru' %}Всего маршрутов{% elif current_language == 'uz' %}Jami yo'nalishlar{% else %}Total Routes{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+        <div>
+            <div class="stat-value">{{ completed_routes }}</div>
+            <div class="stat-label">
+                {% if current_language == 'ru' %}Завершённые{% elif current_language == 'uz' %}Yakunlangan{% else %}Completed{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon orange"><i class="fas fa-motorcycle"></i></div>
+        <div>
+            <div class="stat-value">{{ total_couriers }}</div>
+            <div class="stat-label">
+                {% if current_language == 'ru' %}Активных курьеров{% elif current_language == 'uz' %}Faol kuryerlar{% else %}Active Couriers{% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon purple"><i class="fas fa-box"></i></div>
+        <div>
+            <div class="stat-value">{{ total_deliveries }}</div>
+            <div class="stat-label">
+                {% if current_language == 'ru' %}Точек доставки{% elif current_language == 'uz' %}Yetkazib berish nuqtalari{% else %}Delivery Points{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- QUICK ACTIONS -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px">
+    <a href="/routes/create/" class="card" style="padding:24px;text-decoration:none;display:flex;align-items:center;gap:16px;transition:all 0.2s;border:2px dashed var(--primary)">
+        <div style="width:56px;height:56px;background:var(--primary-light);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--primary)">
+            <i class="fas fa-plus"></i>
+        </div>
+        <div>
+            <div style="font-weight:700;font-size:1rem;color:var(--text)">
+                {% if current_language == 'ru' %}Создать маршрут{% elif current_language == 'uz' %}Yo'nalish yaratish{% else %}Create New Route{% endif %}
+            </div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">
+                {% if current_language == 'ru' %}Добавить точки и запустить ИИ{% elif current_language == 'uz' %}Nuqtalar qo'shish va AI ishga tushirish{% else %}Add delivery points and run AI{% endif %}
+            </div>
+        </div>
+    </a>
+    <a href="/admin/routes/courier/add/" target="_blank" class="card" style="padding:24px;text-decoration:none;display:flex;align-items:center;gap:16px;transition:all 0.2s;border:2px dashed #16a34a">
+        <div style="width:56px;height:56px;background:#dcfce7;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:#16a34a">
+            <i class="fas fa-user-plus"></i>
+        </div>
+        <div>
+            <div style="font-weight:700;font-size:1rem;color:var(--text)">
+                {% if current_language == 'ru' %}Добавить курьера{% elif current_language == 'uz' %}Kuryer qo'shish{% else %}Add Courier{% endif %}
+            </div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:2px">
+                {% if current_language == 'ru' %}Управление курьерами в панели{% elif current_language == 'uz' %}Admin panelida kuryerlarni boshqarish{% else %}Manage couriers in admin panel{% endif %}
+            </div>
+        </div>
+    </a>
+</div>
+
+<!-- RECENT ROUTES -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">
+            <i class="fas fa-history" style="color:var(--primary);margin-right:8px"></i>
+            {% if current_language == 'ru' %}Последние маршруты{% elif current_language == 'uz' %}So'nggi yo'nalishlar{% else %}Recent Routes{% endif %}
+        </h2>
+        <a href="/routes/" class="btn btn-outline btn-sm">
+            {% if current_language == 'ru' %}Все маршруты{% elif current_language == 'uz' %}Barchasi{% else %}View All{% endif %}
+        </a>
+    </div>
+    {% if recent_routes %}
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>{% if current_language == 'ru' %}Маршрут{% elif current_language == 'uz' %}Yo'nalish{% else %}Route{% endif %}</th>
+                    <th>{% if current_language == 'ru' %}Курьер{% elif current_language == 'uz' %}Kuryer{% else %}Courier{% endif %}</th>
+                    <th>{% if current_language == 'ru' %}Статус{% elif current_language == 'uz' %}Holat{% else %}Status{% endif %}</th>
+                    <th>{% if current_language == 'ru' %}Дата{% elif current_language == 'uz' %}Sana{% else %}Date{% endif %}</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for route in recent_routes %}
+                <tr>
+                    <td><strong>{{ route.title }}</strong></td>
+                    <td><i class="fas fa-motorcycle" style="color:var(--primary);margin-right:6px"></i>{{ route.courier.name }}</td>
+                    <td><span class="badge badge-{{ route.status }}">{{ route.get_status_display }}</span></td>
+                    <td style="color:var(--text-muted)">{{ route.created_at|date:"M d, Y" }}</td>
+                    <td><a href="/routes/{{ route.pk }}/" class="btn btn-outline btn-sm">
+                        {% if current_language == 'ru' %}Открыть{% elif current_language == 'uz' %}Ochish{% else %}Open{% endif %}
+                    </a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body" style="text-align:center;padding:48px">
+        <div style="font-size:3rem;margin-bottom:12px">🗺️</div>
+        <div style="font-weight:600;margin-bottom:8px">
+            {% if current_language == 'ru' %}Маршрутов пока нет{% elif current_language == 'uz' %}Hali yo'nalishlar yo'q{% else %}No routes yet{% endif %}
+        </div>
+        <div style="color:var(--text-muted);font-size:0.875rem;margin-bottom:16px">
+            {% if current_language == 'ru' %}Создайте первый маршрут, чтобы начать{% elif current_language == 'uz' %}Boshlash uchun birinchi yo'nalishni yarating{% else %}Create your first route to get started{% endif %}
+        </div>
+        <a href="/routes/create/" class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            {% if current_language == 'ru' %}Создать первый маршрут{% elif current_language == 'uz' %}Birinchi yo'nalishni yaratish{% else %}Create First Route{% endif %}
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
