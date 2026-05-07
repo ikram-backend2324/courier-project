@@ -1,0 +1,205 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - RouteAI</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .login-wrapper {
+            width: 100%;
+            max-width: 420px;
+        }
+        .login-logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .login-logo .icon {
+            width: 72px; height: 72px;
+            background: rgba(255,255,255,0.15);
+            border-radius: 20px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem;
+            margin: 0 auto 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .login-logo h1 {
+            font-size: 2rem; font-weight: 800; color: white;
+        }
+        .login-logo p {
+            color: rgba(255,255,255,0.7); font-size: 0.9rem; margin-top: 4px;
+        }
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            padding: 36px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+        }
+        .login-card h2 {
+            font-size: 1.25rem; font-weight: 700; margin-bottom: 6px; color: #0f172a;
+        }
+        .login-card .subtitle {
+            color: #64748b; font-size: 0.875rem; margin-bottom: 28px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-label {
+            display: block; font-size: 0.875rem; font-weight: 600;
+            margin-bottom: 6px; color: #0f172a;
+        }
+        .input-wrapper { position: relative; }
+        .input-icon {
+            position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+            color: #94a3b8; font-size: 0.9rem;
+        }
+        .form-control {
+            width: 100%; padding: 12px 14px 12px 40px;
+            border-radius: 10px; border: 1.5px solid #e2e8f0;
+            font-size: 0.9rem; font-family: 'Inter', sans-serif;
+            transition: all 0.2s; color: #0f172a;
+        }
+        .form-control:focus {
+            outline: none; border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        .error-box {
+            background: #fee2e2; border: 1px solid #fca5a5;
+            border-radius: 10px; padding: 12px 16px;
+            color: #991b1b; font-size: 0.875rem;
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 20px;
+        }
+        .btn-login {
+            width: 100%; padding: 13px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white; border: none; border-radius: 10px;
+            font-size: 0.95rem; font-weight: 700;
+            cursor: pointer; transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .btn-login:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(37,99,235,0.4);
+        }
+        .lang-bar {
+            display: flex; justify-content: center; gap: 8px; margin-top: 24px;
+        }
+        .lang-btn {
+            padding: 6px 14px; border-radius: 20px;
+            border: 1.5px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: white; font-size: 0.8rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .lang-btn:hover, .lang-btn.active {
+            background: white; color: #2563eb;
+        }
+        .roles-info {
+            margin-top: 20px; padding: 14px;
+            background: #f8fafc; border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+        .roles-info p {
+            font-size: 0.78rem; color: #64748b; line-height: 1.6;
+        }
+        .roles-info strong { color: #0f172a; }
+    </style>
+</head>
+<body>
+<div class="login-wrapper">
+    <div class="login-logo">
+        <div class="icon"><i class="fas fa-route"></i></div>
+        <h1>Route<strong>AI</strong></h1>
+        <p>
+            {% if current_language == 'ru' %}Умное планирование маршрутов{% elif current_language == 'uz' %}Aqlli yo'nalish rejalashtirish{% else %}Smart Courier Route Planning{% endif %}
+        </p>
+    </div>
+
+    <div class="login-card">
+        <h2>
+            {% if current_language == 'ru' %}Вход в систему{% elif current_language == 'uz' %}Tizimga kirish{% else %}Sign In{% endif %}
+        </h2>
+        <p class="subtitle">
+            {% if current_language == 'ru' %}Введите свои учётные данные для входа{% elif current_language == 'uz' %}Kirish uchun ma'lumotlaringizni kiriting{% else %}Enter your credentials to continue{% endif %}
+        </p>
+
+        {% if messages %}
+            {% for message in messages %}
+            <div class="error-box">
+                <i class="fas fa-exclamation-circle"></i>
+                {% if current_language == 'ru' %}Неверное имя пользователя или пароль{% elif current_language == 'uz' %}Noto'g'ri foydalanuvchi nomi yoki parol{% else %}Invalid username or password{% endif %}
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            <div class="form-group">
+                <label class="form-label">
+                    {% if current_language == 'ru' %}Имя пользователя{% elif current_language == 'uz' %}Foydalanuvchi nomi{% else %}Username{% endif %}
+                </label>
+                <div class="input-wrapper">
+                    <i class="fas fa-user input-icon"></i>
+                    <input type="text" name="username" class="form-control"
+                        placeholder="{% if current_language == 'ru' %}Введите имя пользователя{% elif current_language == 'uz' %}Foydalanuvchi nomini kiriting{% else %}Enter your username{% endif %}"
+                        required autofocus>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">
+                    {% if current_language == 'ru' %}Пароль{% elif current_language == 'uz' %}Parol{% else %}Password{% endif %}
+                </label>
+                <div class="input-wrapper">
+                    <i class="fas fa-lock input-icon"></i>
+                    <input type="password" name="password" class="form-control"
+                        placeholder="{% if current_language == 'ru' %}Введите пароль{% elif current_language == 'uz' %}Parolni kiriting{% else %}Enter your password{% endif %}"
+                        required>
+                </div>
+            </div>
+            <button type="submit" class="btn-login">
+                <i class="fas fa-sign-in-alt"></i>
+                {% if current_language == 'ru' %}Войти{% elif current_language == 'uz' %}Kirish{% else %}Sign In{% endif %}
+            </button>
+        </form>
+
+        <div class="roles-info">
+            <p>
+                <strong>
+                    {% if current_language == 'ru' %}Администратор:{% elif current_language == 'uz' %}Administrator:{% else %}Manager/Admin:{% endif %}
+                </strong>
+                {% if current_language == 'ru' %}Полный доступ ко всем маршрутам и курьерам{% elif current_language == 'uz' %}Barcha yo'nalishlar va kuryerlarga to'liq kirish{% else %}Full access to all routes and couriers{% endif %}
+                <br>
+                <strong>
+                    {% if current_language == 'ru' %}Курьер:{% elif current_language == 'uz' %}Kuryer:{% else %}Courier:{% endif %}
+                </strong>
+                {% if current_language == 'ru' %}Видит только свои маршруты{% elif current_language == 'uz' %}Faqat o'z yo'nalishlarini ko'radi{% else %}Sees only their own routes{% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Language switcher -->
+    <div class="lang-bar">
+        <form method="post" action="/set-language/" style="display:contents">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="/login/">
+            <button type="submit" name="language" value="en" class="lang-btn {% if current_language == 'en' %}active{% endif %}">EN</button>
+            <button type="submit" name="language" value="ru" class="lang-btn {% if current_language == 'ru' %}active{% endif %}">RU</button>
+            <button type="submit" name="language" value="uz" class="lang-btn {% if current_language == 'uz' %}active{% endif %}">UZ</button>
+        </form>
+    </div>
+</div>
+</body>
+</html>

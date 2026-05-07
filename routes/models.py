@@ -1,7 +1,10 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 
 class Courier(models.Model):
+    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                 help_text="Link to a Django user account for courier login")
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=20)
     vehicle = models.CharField(max_length=50, choices=[
@@ -38,7 +41,7 @@ class Route(models.Model):
     courier_start_lng = models.FloatField(null=True, blank=True)
     courier_start_address = models.CharField(max_length=255, blank=True)
     ai_response = models.TextField(blank=True)
-    ai_optimized_order = models.TextField(blank=True, help_text="JSON list of optimized point IDs")
+    ai_optimized_order = models.TextField(blank=True)
     language = models.CharField(max_length=5, default='en', choices=[('en','English'),('ru','Russian'),('uz','Uzbek')])
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -67,7 +70,7 @@ class DeliveryPoint(models.Model):
     recipient_phone = models.CharField(max_length=20, blank=True)
     notes = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    optimized_sequence = models.IntegerField(null=True, blank=True, help_text="AI suggested visit order")
+    optimized_sequence = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -12,17 +12,21 @@ class DeliveryPointInline(admin.TabularInline):
 
 @admin.register(Courier)
 class CourierAdmin(admin.ModelAdmin):
-    list_display = ['name', 'phone', 'vehicle', 'default_start_address', 'is_active', 'route_count']
+    list_display = ['name', 'phone', 'vehicle', 'user', 'default_start_address', 'is_active', 'route_count']
     list_filter = ['vehicle', 'is_active']
-    search_fields = ['name', 'phone']
+    search_fields = ['name', 'phone', 'user__username']
     list_editable = ['is_active']
     fieldsets = (
         ('Courier Info', {
             'fields': ('name', 'phone', 'vehicle', 'is_active')
         }),
+        ('Login Account', {
+            'fields': ('user',),
+            'description': 'Link a Django user account so this courier can log in to the client side.'
+        }),
         ('Default Starting Location', {
             'fields': ('default_start_address', 'default_start_lat', 'default_start_lng'),
-            'description': 'Set the default starting location (e.g. warehouse). Couriers can override this on the client side.'
+            'description': 'Set the default starting location (e.g. warehouse).'
         }),
     )
 

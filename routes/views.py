@@ -2,18 +2,43 @@ import requests
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from .models import Courier, Route, DeliveryPoint
 
 
+def get_courier_for_user(user):
+    """Returns courier linked to user, or None if admin/no link."""
+    if user.is_staff or user.is_superuser:
+        return None
+    try:
+        return Courier.objects.get(user=user)
+    except Courier.DoesNotExist:
+        return None
+
+
+@login_required(login_url='/login/')
 def route_list(request):
-    routes = Route.objects.select_related('courier').all()
+    user = request.user
+    courier = get_courier_for_user(user)
+    if courier:
+        routes = Route.objects.select_related('courier').filter(courier=courier)
+    else:
+        routes = Route.objects.select_related('courier').all()
     couriers = Courier.objects.filter(is_active=True)
     return render(request, 'routes/list.html', {'routes': routes, 'couriers': couriers})
 
 
+@login_required(login_url='/login/')
 def route_create(request):
-    couriers = Courier.objects.filter(is_active=True)
+    user = request.user
+    courier_for_user = get_courier_for_user(user)
+    # Couriers can only create routes for themselves
+    if courier_for_user:
+        couriers = Courier.objects.filter(id=courier_for_user.id)
+    else:
+        couriers = Courier.objects.filter(is_active=True)
+
     if request.method == 'POST':
         courier_id = request.POST.get('courier')
         title = request.POST.get('title')
@@ -23,7 +48,12 @@ def route_create(request):
         courier_start_address = request.POST.get('courier_start_address', '')
         language = request.session.get('language', 'en')
 
-        courier = get_object_or_404(Courier, id=courier_id)
+        # Security: couriers can only create routes for themselves
+        if courier_for_user:
+            courier = courier_for_user
+        else:
+            courier = get_object_or_404(Courier, id=courier_id)
+
         route = Route.objects.create(
             courier=courier,
             title=title,
@@ -57,25 +87,40 @@ def route_create(request):
 
         return redirect('routes:detail', pk=route.pk)
 
-    return render(request, 'routes/create.html', {'couriers': couriers})
+    return render(request, 'routes/create.html', {
+        'couriers': couriers,
+        'is_courier': courier_for_user is not None,
+        'courier_for_user': courier_for_user,
+    })
 
 
+@login_required(login_url='/login/')
 def route_detail(request, pk):
+    user = request.user
+    courier = get_courier_for_user(user)
     route = get_object_or_404(Route, pk=pk)
+    # Couriers can only see their own routes
+    if courier and route.courier != courier:
+        return redirect('routes:list')
     points = route.delivery_points.all()
     return render(request, 'routes/detail.html', {'route': route, 'points': points})
 
 
+@login_required(login_url='/login/')
 @require_POST
 def plan_with_ai(request, pk):
+    user = request.user
+    courier = get_courier_for_user(user)
     route = get_object_or_404(Route, pk=pk)
+    if courier and route.courier != courier:
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
     points = list(route.delivery_points.all())
     language = request.session.get('language', 'en')
 
     if not points:
         return JsonResponse({'error': 'No delivery points'}, status=400)
 
-    # Build points lists outside f-strings (Python 3.11 doesn't allow backslashes in f-strings)
     points_en_lines = []
     points_ru_lines = []
     points_uz_lines = []
@@ -141,9 +186,9 @@ def plan_with_ai(request, pk):
                 "Yetkazib berish nuqtalari:\n" + points_uz + '\n\n'
                 "Iltimos, quyidagilarni ko'rsating:\n"
                 "1. Yetkazib berish nuqtalarini tashrif buyurish uchun optimal tartib (ortiqcha yo'l yurishni kamaytirish)\n"
-                '2. Taklif etilgan yo\'nalish uchun qisqacha asoslash\n'
+                "2. Taklif etilgan yo'nalish uchun qisqacha asoslash\n"
                 '3. Tasodifiy tartibga nisbatan taxminiy vaqt tejash\n'
-                '4. Bu yo\'nalish uchun muhim maslahatlar\n\n'
+                "4. Bu yo'nalish uchun muhim maslahatlar\n\n"
                 'Aniq, tuzilgan formatda javob bering.'
             ),
         },
@@ -192,6 +237,7 @@ def plan_with_ai(request, pk):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+@login_required(login_url='/login/')
 def get_couriers(request):
     couriers = Courier.objects.filter(is_active=True).values(
         'id', 'name', 'phone', 'vehicle',
@@ -200,6 +246,7 @@ def get_couriers(request):
     return JsonResponse({'couriers': list(couriers)})
 
 
+@login_required(login_url='/login/')
 def get_courier_location(request, pk):
     courier = get_object_or_404(Courier, pk=pk)
     return JsonResponse({
