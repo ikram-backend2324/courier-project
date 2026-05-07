@@ -80,7 +80,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
-OPENROUTER_MODEL = 'mistralai/mistral-7b-instruct'
+OPENROUTER_MODEL = 'google/gemma-3-4b-it:free'
 
 JAZZMIN_SETTINGS = {
     "site_title": "Courier Route Admin",

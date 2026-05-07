@@ -6,45 +6,59 @@
 
 {% block extra_head %}
 <style>
-.steps { display:flex; gap:0; margin-bottom:28px; overflow-x:auto; }
-.step { flex:1; display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--card); border:1px solid var(--border); position:relative; min-width:0; }
-.step:first-child { border-radius: var(--radius) 0 0 var(--radius); }
-.step:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
-.step-num { width:28px;height:28px;border-radius:50%;background:var(--border);color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0; }
-.step.active .step-num { background:var(--primary);color:white; }
-.step.done .step-num { background:var(--success);color:white; }
-.step-text { font-size:0.8rem;font-weight:600;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-.step.active .step-text { color:var(--primary); }
 .gps-status { display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;font-size:0.85rem;font-weight:500;margin-bottom:12px; }
 .gps-detecting { background:#fef3c7;color:#92400e;border:1px solid #fcd34d; }
 .gps-success { background:#dcfce7;color:#166534;border:1px solid #86efac; }
 .gps-failed { background:#fee2e2;color:#991b1b;border:1px solid #fca5a5; }
-
-/* Sticky map button on mobile */
 .mobile-submit-bar { display:none; }
 
-@media (max-width:768px) {
-    .create-layout { display:flex !important; flex-direction:column !important; }
-    .map-panel { order:-1; }
-    .map-sticky { position:static !important; }
-    #createMap { height:300px !important; }
-    .steps .step-text { display:none; }
-    .steps .step { justify-content:center; flex:0 0 auto; min-width:44px; padding:10px; }
-    .desktop-submit { display:none !important; }
-    .mobile-submit-bar {
-        display:block;
-        position:fixed;
-        bottom:0; left:0; right:0;
-        padding:12px 16px;
-        background:white;
-        border-top:1px solid var(--border);
-        box-shadow:0 -4px 12px rgba(0,0,0,0.08);
-        z-index:800;
+/* DESKTOP layout */
+.create-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    align-items: start;
+}
+.map-sticky {
+    position: sticky;
+    top: 84px;
+}
+
+/* MOBILE layout */
+@media (max-width: 768px) {
+    .create-layout {
+        display: flex !important;
+        flex-direction: column !important;
     }
-    .mobile-submit-bar .btn { width:100%; justify-content:center; }
-    /* Extra bottom padding so content clears the fixed bar */
-    .main { padding-bottom:80px !important; }
-    .btn-group-wrap { flex-wrap:wrap; }
+    .map-panel {
+        order: -1;
+    }
+    .map-sticky {
+        position: static !important;
+    }
+    #createMap {
+        height: 280px !important;
+    }
+    .desktop-submit {
+        display: none !important;
+    }
+    .mobile-submit-bar {
+        display: block;
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        padding: 12px 16px;
+        background: white;
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+        z-index: 900;
+    }
+    .mobile-submit-bar .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    .main { padding-bottom: 80px !important; }
+    .form-row.cols-2 { grid-template-columns: 1fr !important; }
+    .btn-group-wrap { flex-wrap: wrap; }
 }
 </style>
 {% endblock %}
@@ -61,15 +75,16 @@
 
 <form method="post" id="routeForm">
 {% csrf_token %}
-<div class="create-layout" style="display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start">
+<div class="create-layout">
 
     <!-- LEFT PANEL -->
     <div>
         <!-- ROUTE INFO -->
         <div class="card" style="margin-bottom:20px">
             <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-info-circle" style="color:var(--primary);margin-right:8px"></i>
-                {% if current_language == 'ru' %}Информация о маршруте{% elif current_language == 'uz' %}Yo'nalish ma'lumotlari{% else %}Route Information{% endif %}
+                <h3 class="card-title">
+                    <i class="fas fa-info-circle" style="color:var(--primary);margin-right:8px"></i>
+                    {% if current_language == 'ru' %}Информация о маршруте{% elif current_language == 'uz' %}Yo'nalish ma'lumotlari{% else %}Route Information{% endif %}
                 </h3>
             </div>
             <div class="card-body">
@@ -78,23 +93,31 @@
                         <label class="form-label">
                             {% if current_language == 'ru' %}Курьер{% elif current_language == 'uz' %}Kuryer{% else %}Courier{% endif %} *
                         </label>
+                        {% if is_courier %}
+                        <input type="hidden" name="courier" value="{{ courier_for_user.id }}">
+                        <input type="text" class="form-control" value="{{ courier_for_user.name }}" disabled>
+                        {% else %}
                         <select name="courier" id="courierSelect" class="form-control" required onchange="loadCourierLocation(this.value)">
                             <option value="">
                                 {% if current_language == 'ru' %}Выберите курьера{% elif current_language == 'uz' %}Kuryerni tanlang{% else %}Select courier{% endif %}
                             </option>
                             {% for courier in couriers %}
-                            <option value="{{ courier.id }}" data-lat="{{ courier.default_start_lat }}" data-lng="{{ courier.default_start_lng }}" data-address="{{ courier.default_start_address }}">
+                            <option value="{{ courier.id }}"
+                                data-lat="{{ courier.default_start_lat }}"
+                                data-lng="{{ courier.default_start_lng }}"
+                                data-address="{{ courier.default_start_address }}">
                                 {{ courier.name }} ({{ courier.get_vehicle_display }})
                             </option>
                             {% endfor %}
                         </select>
+                        {% endif %}
                     </div>
                     <div class="form-group">
                         <label class="form-label">
                             {% if current_language == 'ru' %}Название маршрута{% elif current_language == 'uz' %}Yo'nalish nomi{% else %}Route Title{% endif %} *
                         </label>
                         <input type="text" name="title" class="form-control" required
-                            placeholder="{% if current_language == 'ru' %}Маршрут №1 - Понедельник{% elif current_language == 'uz' %}1-yo'nalish - Dushanba{% else %}Route #1 - Monday{% endif %}">
+                            placeholder="{% if current_language == 'ru' %}Маршрут №1{% elif current_language == 'uz' %}1-yo'nalish{% else %}Route #1 - Monday{% endif %}">
                     </div>
                 </div>
                 <div class="form-group">
@@ -110,16 +133,18 @@
         <!-- COURIER START LOCATION -->
         <div class="card" style="margin-bottom:20px">
             <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-map-marker-alt" style="color:#16a34a;margin-right:8px"></i>
-                {% if current_language == 'ru' %}Начальная точка курьера{% elif current_language == 'uz' %}Kuryerning boshlang'ich nuqtasi{% else %}Courier Starting Location{% endif %}
+                <h3 class="card-title">
+                    <i class="fas fa-map-marker-alt" style="color:#16a34a;margin-right:8px"></i>
+                    {% if current_language == 'ru' %}Начальная точка курьера{% elif current_language == 'uz' %}Kuryerning boshlang'ich nuqtasi{% else %}Courier Starting Location{% endif %}
                 </h3>
             </div>
             <div class="card-body">
                 <div id="gpsStatus" class="gps-status gps-detecting" style="display:none">
                     <i class="fas fa-satellite-dish"></i>
-                    <span id="gpsStatusText">{% if current_language == 'ru' %}Определяем местоположение...{% elif current_language == 'uz' %}Joylashuv aniqlanmoqda...{% else %}Detecting location...{% endif %}</span>
+                    <span id="gpsStatusText">
+                        {% if current_language == 'ru' %}Определяем местоположение...{% elif current_language == 'uz' %}Joylashuv aniqlanmoqda...{% else %}Detecting location...{% endif %}
+                    </span>
                 </div>
-
                 <div class="btn-group-wrap" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
                     <button type="button" class="btn btn-success btn-sm" onclick="detectGPS()">
                         <i class="fas fa-crosshairs"></i>
@@ -131,19 +156,23 @@
                     </button>
                     <button type="button" class="btn btn-outline btn-sm" onclick="useDefaultLocation()" id="useDefaultBtn" style="display:none">
                         <i class="fas fa-warehouse"></i>
-                        {% if current_language == 'ru' %}Склад по умолчанию{% elif current_language == 'uz' %}Standart ombor{% else %}Use Default Warehouse{% endif %}
+                        {% if current_language == 'ru' %}Склад{% elif current_language == 'uz' %}Ombor{% else %}Default Warehouse{% endif %}
                     </button>
                 </div>
-
                 <input type="hidden" name="courier_start_lat" id="startLat">
                 <input type="hidden" name="courier_start_lng" id="startLng">
                 <div class="form-group" style="margin-bottom:0">
-                    <label class="form-label">{% if current_language == 'ru' %}Адрес начальной точки{% elif current_language == 'uz' %}Boshlang'ich manzil{% else %}Starting Address{% endif %}</label>
+                    <label class="form-label">
+                        {% if current_language == 'ru' %}Адрес начальной точки{% elif current_language == 'uz' %}Boshlang'ich manzil{% else %}Starting Address{% endif %}
+                    </label>
                     <input type="text" name="courier_start_address" id="startAddress" class="form-control"
-                        placeholder="{% if current_language == 'ru' %}Адрес или описание стартовой точки{% elif current_language == 'uz' %}Boshlang'ich nuqta manzili{% else %}Address or description of starting point{% endif %}">
+                        placeholder="{% if current_language == 'ru' %}Адрес стартовой точки{% elif current_language == 'uz' %}Boshlang'ich nuqta manzili{% else %}Address of starting point{% endif %}">
                 </div>
                 <div id="startLocationBadge" style="margin-top:10px;display:none">
-                    <span class="location-badge"><i class="fas fa-check-circle"></i> <span id="startLocationText"></span></span>
+                    <span class="location-badge">
+                        <i class="fas fa-check-circle"></i>
+                        <span id="startLocationText"></span>
+                    </span>
                 </div>
             </div>
         </div>
@@ -151,18 +180,19 @@
         <!-- DELIVERY POINTS -->
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-map-marked-alt" style="color:var(--primary);margin-right:8px"></i>
-                {% if current_language == 'ru' %}Точки доставки{% elif current_language == 'uz' %}Yetkazib berish nuqtalari{% else %}Delivery Points{% endif %}
+                <h3 class="card-title">
+                    <i class="fas fa-map-marked-alt" style="color:var(--primary);margin-right:8px"></i>
+                    {% if current_language == 'ru' %}Точки доставки{% elif current_language == 'uz' %}Yetkazib berish nuqtalari{% else %}Delivery Points{% endif %}
                 </h3>
                 <button type="button" class="btn btn-primary btn-sm" onclick="addDeliveryPoint()">
                     <i class="fas fa-plus"></i>
-                    {% if current_language == 'ru' %}Добавить точку{% elif current_language == 'uz' %}Nuqta qo'shish{% else %}Add Point{% endif %}
+                    {% if current_language == 'ru' %}Добавить{% elif current_language == 'uz' %}Qo'shish{% else %}Add Point{% endif %}
                 </button>
             </div>
             <div class="card-body">
                 <div class="alert alert-info" id="mapHint">
                     <i class="fas fa-info-circle"></i>
-                    {% if current_language == 'ru' %}Нажмите на карту справа для добавления точки доставки, или нажмите "Добавить точку" вручную{% elif current_language == 'uz' %}Yetkazib berish nuqtasini qo'shish uchun o'ng tarafdagi xaritaga bosing yoki "Nuqta qo'shish" tugmasini bosing{% else %}Click on the map on the right to add a delivery point, or click "Add Point" manually{% endif %}
+                    {% if current_language == 'ru' %}Нажмите на карту для добавления точки или нажмите "Добавить"{% elif current_language == 'uz' %}Nuqta qo'shish uchun xaritaga bosing yoki "Qo'shish" tugmasini bosing{% else %}Click on the map to add a delivery point, or click "Add Point"{% endif %}
                 </div>
                 <div id="deliveryPointsList"></div>
                 <div id="emptyPoints" style="text-align:center;padding:32px;color:var(--text-muted)">
@@ -173,36 +203,40 @@
         </div>
     </div>
 
-    <!-- RIGHT PANEL - MAP -->
-    <div class="map-panel" style="position:sticky;top:calc(var(--nav-h) + 20px)" class="map-sticky">
+    <!-- RIGHT PANEL - MAP (sticky on desktop, top on mobile) -->
+    <div class="map-panel map-sticky">
         <div class="card">
             <div class="card-header">
-                <h3 class="card-title"><i class="fas fa-map" style="color:var(--primary);margin-right:8px"></i>
-                {% if current_language == 'ru' %}Карта{% elif current_language == 'uz' %}Xarita{% else %}Map{% endif %}
+                <h3 class="card-title">
+                    <i class="fas fa-map" style="color:var(--primary);margin-right:8px"></i>
+                    {% if current_language == 'ru' %}Карта{% elif current_language == 'uz' %}Xarita{% else %}Map{% endif %}
                 </h3>
                 <span id="mapModeLabel" style="font-size:0.75rem;padding:4px 10px;background:var(--primary-light);color:var(--primary);border-radius:20px;font-weight:600">
                     {% if current_language == 'ru' %}Режим просмотра{% elif current_language == 'uz' %}Ko'rish rejimi{% else %}View Mode{% endif %}
                 </span>
             </div>
-            <div class="card-body" style="padding:0">
-                <div id="createMap" style="height:520px;border-radius:0 0 var(--radius) var(--radius)"></div>
+            <div style="padding:0">
+                <div id="createMap" style="height:500px;border-radius:0 0 var(--radius) var(--radius)"></div>
             </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-lg desktop-submit" style="width:100%;margin-top:16px;justify-content:center" id="submitBtn">
+        <button type="submit" class="btn btn-primary btn-lg desktop-submit"
+            style="width:100%;margin-top:16px;justify-content:center" id="submitBtn">
             <i class="fas fa-route"></i>
             {% if current_language == 'ru' %}Создать маршрут{% elif current_language == 'uz' %}Yo'nalish yaratish{% else %}Create Route{% endif %}
         </button>
     </div>
-</div>
 
-<!-- Mobile fixed submit bar -->
+</div>
+</form>
+
+<!-- MOBILE FIXED BOTTOM SUBMIT -->
 <div class="mobile-submit-bar">
-    <button type="submit" class="btn btn-primary btn-lg" id="submitBtnMobile">
+    <button type="submit" form="routeForm" class="btn btn-primary btn-lg" id="submitBtnMobile">
         <i class="fas fa-route"></i>
         {% if current_language == 'ru' %}Создать маршрут{% elif current_language == 'uz' %}Yo'nalish yaratish{% else %}Create Route{% endif %}
     </button>
 </div>
-</form>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -210,34 +244,36 @@
 const L_LANG = {
     en: {
         point: 'Point', order: 'Order #', address: 'Address', recipient: 'Recipient Name',
-        phone: 'Phone', notes: 'Notes', remove: 'Remove', detecting: 'Detecting GPS location...',
-        gpsSuccess: 'GPS location detected!', gpsFailed: 'GPS not available. Please click on map or use default.',
-        pinMode: 'Click on map to pin delivery point', startPin: 'Click on map to set start location',
-        startSet: 'Starting location set!', coordsSet: 'Coordinates set from map',
+        phone: 'Phone', notes: 'Notes', detecting: 'Detecting GPS location...',
+        gpsSuccess: 'GPS location detected!',
+        gpsFailed: 'GPS not available. Please click on map or use default.',
+        pinMode: 'Click map to pin delivery point',
+        startPin: 'Click map to set start location',
         viewMode: 'View Mode'
     },
     ru: {
-        point: 'Точка', order: 'Заказ #', address: 'Адрес', recipient: 'Имя получателя',
-        phone: 'Телефон', notes: 'Примечания', remove: 'Удалить', detecting: 'Определение GPS...',
-        gpsSuccess: 'GPS-местоположение определено!', gpsFailed: 'GPS недоступен. Нажмите на карту или используйте склад.',
-        pinMode: 'Нажмите на карту для добавления точки', startPin: 'Нажмите на карту для стартовой точки',
-        startSet: 'Начальная точка установлена!', coordsSet: 'Координаты установлены',
+        point: 'Точка', order: 'Заказ #', address: 'Адрес', recipient: 'Получатель',
+        phone: 'Телефон', notes: 'Примечания', detecting: 'Определение GPS...',
+        gpsSuccess: 'GPS определён!',
+        gpsFailed: 'GPS недоступен. Нажмите на карту или используйте склад.',
+        pinMode: 'Нажмите карту для точки доставки',
+        startPin: 'Нажмите карту для стартовой точки',
         viewMode: 'Режим просмотра'
     },
     uz: {
-        point: 'Nuqta', order: 'Buyurtma #', address: 'Manzil', recipient: 'Qabul qiluvchi ismi',
-        phone: 'Telefon', notes: 'Izohlar', remove: 'O\'chirish', detecting: 'GPS aniqlanmoqda...',
-        gpsSuccess: 'GPS joylashuv aniqlandi!', gpsFailed: 'GPS mavjud emas. Xaritaga bosing yoki standartdan foydalaning.',
-        pinMode: 'Yetkazib berish nuqtasini qo\'shish uchun xaritaga bosing', startPin: 'Boshlang\'ich nuqtani belgilash uchun xaritaga bosing',
-        startSet: 'Boshlang\'ich nuqta belgilandi!', coordsSet: 'Koordinatalar xaritadan o\'rnatildi',
-        viewMode: 'Ko\'rish rejimi'
+        point: 'Nuqta', order: 'Buyurtma #', address: 'Manzil', recipient: 'Qabul qiluvchi',
+        phone: 'Telefon', notes: 'Izohlar', detecting: 'GPS aniqlanmoqda...',
+        gpsSuccess: 'GPS aniqlandi!',
+        gpsFailed: "GPS mavjud emas. Xaritaga bosing yoki ombordan foydalaning.",
+        pinMode: 'Yetkazib berish nuqtasi uchun xaritaga bosing',
+        startPin: "Boshlang'ich nuqta uchun xaritaga bosing",
+        viewMode: "Ko'rish rejimi"
     }
 };
 const t = L_LANG[CURRENT_LANG] || L_LANG.en;
 
 let map, pointCount = 0, deliveryMarkers = [], startMarker = null, mapMode = 'view';
 
-// Init map centered on Tashkent
 map = L.map('createMap').setView([41.2995, 69.2401], 12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors', maxZoom: 19
@@ -250,7 +286,7 @@ const startIcon = L.divIcon({
 
 function getDeliveryIcon(num) {
     return L.divIcon({
-        html: `<div style="background:var(--primary,#2563eb);color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)">${num}</div>`,
+        html: '<div style="background:#2563eb;color:white;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)">' + num + '</div>',
         iconSize: [32, 32], iconAnchor: [16, 16], className: ''
     });
 }
@@ -268,7 +304,6 @@ map.on('click', function(e) {
 function setMapMode(mode) {
     mapMode = mode;
     const label = document.getElementById('mapModeLabel');
-    const hint = document.getElementById('mapHint');
     if (mode === 'delivery') {
         label.textContent = t.pinMode;
         label.style.background = '#fef3c7'; label.style.color = '#92400e';
@@ -279,7 +314,7 @@ function setMapMode(mode) {
         map.getContainer().style.cursor = 'crosshair';
     } else {
         label.textContent = t.viewMode;
-        label.style.background = 'var(--primary-light,#dbeafe)'; label.style.color = 'var(--primary,#2563eb)';
+        label.style.background = '#dbeafe'; label.style.color = '#2563eb';
         map.getContainer().style.cursor = '';
     }
 }
@@ -306,11 +341,11 @@ function detectGPS() {
             statusText.textContent = t.gpsSuccess;
             map.setView([lat, lng], 14);
         },
-        function() {
+        function(err) {
             statusEl.className = 'gps-status gps-failed';
             statusText.textContent = t.gpsFailed;
         },
-        { enableHighAccuracy: true, timeout: 10000 }
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
     );
 }
 
@@ -321,92 +356,97 @@ function setStartLocation(lat, lng, label) {
         document.getElementById('startAddress').value = label;
     }
     document.getElementById('startLocationBadge').style.display = 'block';
-    document.getElementById('startLocationText').textContent = lat.toFixed(4) + ', ' + lng.toFixed(4);
+    document.getElementById('startLocationText').textContent = parseFloat(lat).toFixed(4) + ', ' + parseFloat(lng).toFixed(4);
     if (startMarker) map.removeLayer(startMarker);
     startMarker = L.marker([lat, lng], {icon: startIcon}).addTo(map);
-    startMarker.bindPopup('<strong>🏭 Start</strong><br>' + label).openPopup();
+    startMarker.bindPopup('<strong>Start</strong><br>' + label).openPopup();
 }
 
 function loadCourierLocation(courierId) {
     if (!courierId) return;
     const sel = document.getElementById('courierSelect');
+    if (!sel) return;
     const opt = sel.options[sel.selectedIndex];
     const lat = opt.dataset.lat, lng = opt.dataset.lng, addr = opt.dataset.address;
     if (lat && lng && lat !== 'None' && lng !== 'None') {
-        document.getElementById('useDefaultBtn').style.display = 'inline-flex';
-        document.getElementById('useDefaultBtn').dataset.lat = lat;
-        document.getElementById('useDefaultBtn').dataset.lng = lng;
-        document.getElementById('useDefaultBtn').dataset.addr = addr;
+        const btn = document.getElementById('useDefaultBtn');
+        btn.style.display = 'inline-flex';
+        btn.dataset.lat = lat;
+        btn.dataset.lng = lng;
+        btn.dataset.addr = addr;
     }
 }
 
 function useDefaultLocation() {
     const btn = document.getElementById('useDefaultBtn');
-    setStartLocation(parseFloat(btn.dataset.lat), parseFloat(btn.dataset.lng), btn.dataset.addr || 'Default warehouse');
-    document.getElementById('startAddress').value = btn.dataset.addr || 'Default warehouse';
-    map.setView([parseFloat(btn.dataset.lat), parseFloat(btn.dataset.lng)], 14);
+    const lat = parseFloat(btn.dataset.lat);
+    const lng = parseFloat(btn.dataset.lng);
+    const addr = btn.dataset.addr || 'Default warehouse';
+    setStartLocation(lat, lng, addr);
+    document.getElementById('startAddress').value = addr;
+    map.setView([lat, lng], 14);
 }
 
 function addDeliveryPoint(lat, lng) {
     pointCount++;
     const idx = pointCount;
     const list = document.getElementById('deliveryPointsList');
-    const empty = document.getElementById('emptyPoints');
-    empty.style.display = 'none';
+    document.getElementById('emptyPoints').style.display = 'none';
+
+    const addrPlaceholder = '{% if current_language == "ru" %}Адрес доставки{% elif current_language == "uz" %}Yetkazib berish manzili{% else %}Delivery address{% endif %}';
+    const notePlaceholder = '{% if current_language == "ru" %}Примечание{% elif current_language == "uz" %}Izoh{% else %}Note{% endif %}';
 
     const div = document.createElement('div');
     div.className = 'point-card';
     div.id = 'point-' + idx;
-    div.innerHTML = `
-        <div class="point-card-header">
-            <div style="display:flex;align-items:center;gap:10px">
-                <div class="point-number">${idx}</div>
-                <strong>${t.point} ${idx}</strong>
-            </div>
-            <div style="display:flex;gap:6px">
-                <button type="button" class="btn btn-outline btn-sm" onclick="pinPointOnMap(${idx})" title="Pin on map">
-                    <i class="fas fa-map-pin"></i>
-                </button>
-                <button type="button" class="remove-point" onclick="removePoint(${idx})">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-        </div>
-        <input type="hidden" name="lat[]" id="lat-${idx}" value="${lat || ''}">
-        <input type="hidden" name="lng[]" id="lng-${idx}" value="${lng || ''}">
-        <div class="form-row cols-2" style="margin-bottom:10px">
-            <div class="form-group" style="margin:0">
-                <label class="form-label">${t.order}</label>
-                <input type="text" name="order_number[]" class="form-control" placeholder="ORD-001" value="${idx}">
-            </div>
-            <div class="form-group" style="margin:0">
-                <label class="form-label">${t.recipient}</label>
-                <input type="text" name="recipient_name[]" class="form-control" placeholder="John Doe">
-            </div>
-        </div>
-        <div class="form-group" style="margin-bottom:10px">
-            <label class="form-label">${t.address} *</label>
-            <input type="text" name="address[]" class="form-control" required
-                placeholder="{% if current_language == 'ru' %}Адрес доставки{% elif current_language == 'uz' %}Yetkazib berish manzili{% else %}Delivery address{% endif %}"
-                value="">
-        </div>
-        <div class="form-row cols-2">
-            <div class="form-group" style="margin:0">
-                <label class="form-label">${t.phone}</label>
-                <input type="text" name="recipient_phone[]" class="form-control" placeholder="+998 90 000 0000">
-            </div>
-            <div class="form-group" style="margin:0">
-                <label class="form-label">${t.notes}</label>
-                <input type="text" name="point_notes[]" class="form-control" placeholder="{% if current_language == 'ru' %}Примечание{% elif current_language == 'uz' %}Izoh{% else %}Note{% endif %}">
-            </div>
-        </div>
-        ${lat ? `<div style="margin-top:8px"><span class="location-badge"><i class="fas fa-map-pin"></i> ${lat.toFixed ? lat.toFixed(4) : lat}, ${lng.toFixed ? lng.toFixed(4) : lng}</span></div>` : ''}
-    `;
+    div.innerHTML =
+        '<div class="point-card-header">' +
+            '<div style="display:flex;align-items:center;gap:10px">' +
+                '<div class="point-number">' + idx + '</div>' +
+                '<strong>' + t.point + ' ' + idx + '</strong>' +
+            '</div>' +
+            '<div style="display:flex;gap:6px">' +
+                '<button type="button" class="btn btn-outline btn-sm" onclick="pinPointOnMap(' + idx + ')">' +
+                    '<i class="fas fa-map-pin"></i>' +
+                '</button>' +
+                '<button type="button" class="remove-point" onclick="removePoint(' + idx + ')">' +
+                    '<i class="fas fa-times"></i>' +
+                '</button>' +
+            '</div>' +
+        '</div>' +
+        '<input type="hidden" name="lat[]" id="lat-' + idx + '" value="' + (lat || '') + '">' +
+        '<input type="hidden" name="lng[]" id="lng-' + idx + '" value="' + (lng || '') + '">' +
+        '<div class="form-row cols-2" style="margin-bottom:10px">' +
+            '<div class="form-group" style="margin:0">' +
+                '<label class="form-label">' + t.order + '</label>' +
+                '<input type="text" name="order_number[]" class="form-control" placeholder="ORD-001" value="' + idx + '">' +
+            '</div>' +
+            '<div class="form-group" style="margin:0">' +
+                '<label class="form-label">' + t.recipient + '</label>' +
+                '<input type="text" name="recipient_name[]" class="form-control" placeholder="John Doe">' +
+            '</div>' +
+        '</div>' +
+        '<div class="form-group" style="margin-bottom:10px">' +
+            '<label class="form-label">' + t.address + ' *</label>' +
+            '<input type="text" name="address[]" class="form-control" required placeholder="' + addrPlaceholder + '">' +
+        '</div>' +
+        '<div class="form-row cols-2">' +
+            '<div class="form-group" style="margin:0">' +
+                '<label class="form-label">' + t.phone + '</label>' +
+                '<input type="text" name="recipient_phone[]" class="form-control" placeholder="+998 90 000 0000">' +
+            '</div>' +
+            '<div class="form-group" style="margin:0">' +
+                '<label class="form-label">' + t.notes + '</label>' +
+                '<input type="text" name="point_notes[]" class="form-control" placeholder="' + notePlaceholder + '">' +
+            '</div>' +
+        '</div>' +
+        (lat ? '<div style="margin-top:8px"><span class="location-badge"><i class="fas fa-map-pin"></i> ' + parseFloat(lat).toFixed(4) + ', ' + parseFloat(lng).toFixed(4) + '</span></div>' : '');
+
     list.appendChild(div);
 
     if (lat && lng) {
         const marker = L.marker([lat, lng], {icon: getDeliveryIcon(idx)}).addTo(map);
-        marker.bindPopup(`<strong>Point ${idx}</strong>`);
+        marker.bindPopup('<strong>Point ' + idx + '</strong>');
         deliveryMarkers[idx] = marker;
         map.setView([lat, lng], 14);
     }
@@ -415,9 +455,8 @@ function addDeliveryPoint(lat, lng) {
 }
 
 function pinPointOnMap(idx) {
-    mapMode = 'pin-' + idx;
     const label = document.getElementById('mapModeLabel');
-    label.textContent = '📍 Click to pin Point ' + idx;
+    label.textContent = 'Click to pin Point ' + idx;
     label.style.background = '#ede9fe'; label.style.color = '#7c3aed';
     map.getContainer().style.cursor = 'crosshair';
     map.once('click', function(e) {
@@ -439,11 +478,23 @@ function removePoint(idx) {
     }
 }
 
+// Auto-load default location if courier is pre-selected (courier login)
+{% if is_courier and courier_for_user.default_start_lat %}
+window.addEventListener('load', function() {
+    setStartLocation({{ courier_for_user.default_start_lat }}, {{ courier_for_user.default_start_lng }}, '{{ courier_for_user.default_start_address|escapejs }}');
+    document.getElementById('startAddress').value = '{{ courier_for_user.default_start_address|escapejs }}';
+    map.setView([{{ courier_for_user.default_start_lat }}, {{ courier_for_user.default_start_lng }}], 13);
+});
+{% endif %}
+
 document.getElementById('routeForm').addEventListener('submit', function(e) {
     const points = document.querySelectorAll('[name="address[]"]');
-    if (points.length === 0) { e.preventDefault(); alert('{% if current_language == "ru" %}Добавьте хотя бы одну точку доставки{% elif current_language == "uz" %}Kamida bitta yetkazib berish nuqtasini qo\'shing{% else %}Please add at least one delivery point{% endif %}'); return; }
-    const btns = document.querySelectorAll('#submitBtn, #submitBtnMobile');
-    btns.forEach(btn => {
+    if (points.length === 0) {
+        e.preventDefault();
+        alert('{% if current_language == "ru" %}Добавьте хотя бы одну точку доставки{% elif current_language == "uz" %}Kamida bitta yetkazib berish nuqtasini qo\'shing{% else %}Please add at least one delivery point{% endif %}');
+        return;
+    }
+    document.querySelectorAll('#submitBtn, #submitBtnMobile').forEach(function(btn) {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {% if current_language == "ru" %}Создание...{% elif current_language == "uz" %}Yaratilmoqda...{% else %}Creating...{% endif %}';
     });
