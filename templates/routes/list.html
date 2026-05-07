@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-header" style="display:flex;align-items:center;justify-content:space-between">
+<div class="page-header page-header-flex" style="display:flex;align-items:center;justify-content:space-between">
     <div>
         <h1 class="page-title">
             {% if current_language == 'ru' %}Все маршруты{% elif current_language == 'uz' %}Barcha yo'nalishlar{% else %}All Routes{% endif %}
@@ -43,7 +43,7 @@
                     <td><strong>{{ route.title }}</strong></td>
                     <td>
                         <div style="display:flex;align-items:center;gap:8px">
-                            <div style="width:32px;height:32px;background:var(--primary-light);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:0.75rem">
+                            <div style="width:32px;height:32px;background:var(--primary-light);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:0.75rem;flex-shrink:0">
                                 <i class="fas fa-motorcycle"></i>
                             </div>
                             {{ route.courier.name }}
@@ -72,12 +72,12 @@
         </table>
     </div>
     {% else %}
-    <div class="card-body" style="text-align:center;padding:64px">
+    <div class="card-body" style="text-align:center;padding:48px 24px">
         <div style="font-size:4rem;margin-bottom:16px">🗺️</div>
         <div style="font-weight:700;font-size:1.125rem;margin-bottom:8px">
             {% if current_language == 'ru' %}Маршрутов пока нет{% elif current_language == 'uz' %}Hali yo'nalishlar yo'q{% else %}No routes yet{% endif %}
         </div>
-        <p style="color:var(--text-muted);margin-bottom:24px">
+        <p style="color:var(--text-muted);margin-bottom:24px;font-size:0.875rem">
             {% if current_language == 'ru' %}Создайте первый маршрут и используйте ИИ для оптимизации{% elif current_language == 'uz' %}Birinchi yo'nalishingizni yarating va optimallashtirish uchun AI dan foydalaning{% else %}Create your first route and use AI to optimize it{% endif %}
         </p>
         <a href="/routes/create/" class="btn btn-primary btn-lg">

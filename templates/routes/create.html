@@ -6,19 +6,46 @@
 
 {% block extra_head %}
 <style>
-.steps { display:flex; gap:0; margin-bottom:28px; }
-.step { flex:1; display:flex; align-items:center; gap:10px; padding:14px 16px; background:var(--card); border:1px solid var(--border); position:relative; }
+.steps { display:flex; gap:0; margin-bottom:28px; overflow-x:auto; }
+.step { flex:1; display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--card); border:1px solid var(--border); position:relative; min-width:0; }
 .step:first-child { border-radius: var(--radius) 0 0 var(--radius); }
 .step:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
 .step-num { width:28px;height:28px;border-radius:50%;background:var(--border);color:var(--text-muted);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0; }
 .step.active .step-num { background:var(--primary);color:white; }
 .step.done .step-num { background:var(--success);color:white; }
-.step-text { font-size:0.8rem;font-weight:600;color:var(--text-muted); }
+.step-text { font-size:0.8rem;font-weight:600;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
 .step.active .step-text { color:var(--primary); }
 .gps-status { display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;font-size:0.85rem;font-weight:500;margin-bottom:12px; }
 .gps-detecting { background:#fef3c7;color:#92400e;border:1px solid #fcd34d; }
 .gps-success { background:#dcfce7;color:#166534;border:1px solid #86efac; }
 .gps-failed { background:#fee2e2;color:#991b1b;border:1px solid #fca5a5; }
+
+/* Sticky map button on mobile */
+.mobile-submit-bar { display:none; }
+
+@media (max-width:768px) {
+    .create-layout { display:flex !important; flex-direction:column !important; }
+    .map-panel { order:-1; }
+    .map-sticky { position:static !important; }
+    #createMap { height:300px !important; }
+    .steps .step-text { display:none; }
+    .steps .step { justify-content:center; flex:0 0 auto; min-width:44px; padding:10px; }
+    .desktop-submit { display:none !important; }
+    .mobile-submit-bar {
+        display:block;
+        position:fixed;
+        bottom:0; left:0; right:0;
+        padding:12px 16px;
+        background:white;
+        border-top:1px solid var(--border);
+        box-shadow:0 -4px 12px rgba(0,0,0,0.08);
+        z-index:800;
+    }
+    .mobile-submit-bar .btn { width:100%; justify-content:center; }
+    /* Extra bottom padding so content clears the fixed bar */
+    .main { padding-bottom:80px !important; }
+    .btn-group-wrap { flex-wrap:wrap; }
+}
 </style>
 {% endblock %}
 
@@ -34,7 +61,7 @@
 
 <form method="post" id="routeForm">
 {% csrf_token %}
-<div style="display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start">
+<div class="create-layout" style="display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start">
 
     <!-- LEFT PANEL -->
     <div>
@@ -75,7 +102,7 @@
                         {% if current_language == 'ru' %}Примечания{% elif current_language == 'uz' %}Izohlar{% else %}Notes{% endif %}
                     </label>
                     <textarea name="notes" class="form-control" rows="2"
-                        placeholder="{% if current_language == 'ru' %}Дополнительные инструкции...{% elif current_language == 'uz' %}Qo\'shimcha ko\'rsatmalar...{% else %}Additional instructions...{% endif %}"></textarea>
+                        placeholder="{% if current_language == 'ru' %}Дополнительные инструкции...{% elif current_language == 'uz' %}Qo'shimcha ko'rsatmalar...{% else %}Additional instructions...{% endif %}"></textarea>
                 </div>
             </div>
         </div>
@@ -84,7 +111,7 @@
         <div class="card" style="margin-bottom:20px">
             <div class="card-header">
                 <h3 class="card-title"><i class="fas fa-map-marker-alt" style="color:#16a34a;margin-right:8px"></i>
-                {% if current_language == 'ru' %}Начальная точка курьера{% elif current_language == 'uz' %}Kuryerning boshlang\'ich nuqtasi{% else %}Courier Starting Location{% endif %}
+                {% if current_language == 'ru' %}Начальная точка курьера{% elif current_language == 'uz' %}Kuryerning boshlang'ich nuqtasi{% else %}Courier Starting Location{% endif %}
                 </h3>
             </div>
             <div class="card-body">
@@ -93,7 +120,7 @@
                     <span id="gpsStatusText">{% if current_language == 'ru' %}Определяем местоположение...{% elif current_language == 'uz' %}Joylashuv aniqlanmoqda...{% else %}Detecting location...{% endif %}</span>
                 </div>
 
-                <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+                <div class="btn-group-wrap" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
                     <button type="button" class="btn btn-success btn-sm" onclick="detectGPS()">
                         <i class="fas fa-crosshairs"></i>
                         {% if current_language == 'ru' %}GPS{% elif current_language == 'uz' %}GPS{% else %}Use GPS{% endif %}
@@ -111,9 +138,9 @@
                 <input type="hidden" name="courier_start_lat" id="startLat">
                 <input type="hidden" name="courier_start_lng" id="startLng">
                 <div class="form-group" style="margin-bottom:0">
-                    <label class="form-label">{% if current_language == 'ru' %}Адрес начальной точки{% elif current_language == 'uz' %}Boshlang\'ich manzil{% else %}Starting Address{% endif %}</label>
+                    <label class="form-label">{% if current_language == 'ru' %}Адрес начальной точки{% elif current_language == 'uz' %}Boshlang'ich manzil{% else %}Starting Address{% endif %}</label>
                     <input type="text" name="courier_start_address" id="startAddress" class="form-control"
-                        placeholder="{% if current_language == 'ru' %}Адрес или описание стартовой точки{% elif current_language == 'uz' %}Boshlang\'ich nuqta manzili{% else %}Address or description of starting point{% endif %}">
+                        placeholder="{% if current_language == 'ru' %}Адрес или описание стартовой точки{% elif current_language == 'uz' %}Boshlang'ich nuqta manzili{% else %}Address or description of starting point{% endif %}">
                 </div>
                 <div id="startLocationBadge" style="margin-top:10px;display:none">
                     <span class="location-badge"><i class="fas fa-check-circle"></i> <span id="startLocationText"></span></span>
@@ -129,43 +156,51 @@
                 </h3>
                 <button type="button" class="btn btn-primary btn-sm" onclick="addDeliveryPoint()">
                     <i class="fas fa-plus"></i>
-                    {% if current_language == 'ru' %}Добавить точку{% elif current_language == 'uz' %}Nuqta qo\'shish{% else %}Add Point{% endif %}
+                    {% if current_language == 'ru' %}Добавить точку{% elif current_language == 'uz' %}Nuqta qo'shish{% else %}Add Point{% endif %}
                 </button>
             </div>
             <div class="card-body">
                 <div class="alert alert-info" id="mapHint">
                     <i class="fas fa-info-circle"></i>
-                    {% if current_language == 'ru' %}Нажмите на карту справа для добавления точки доставки, или нажмите "Добавить точку" вручную{% elif current_language == 'uz' %}Yetkazib berish nuqtasini qo\'shish uchun o\'ng tarafdagi xaritaga bosing yoki "Nuqta qo\'shish" tugmasini bosing{% else %}Click on the map on the right to add a delivery point, or click "Add Point" manually{% endif %}
+                    {% if current_language == 'ru' %}Нажмите на карту справа для добавления точки доставки, или нажмите "Добавить точку" вручную{% elif current_language == 'uz' %}Yetkazib berish nuqtasini qo'shish uchun o'ng tarafdagi xaritaga bosing yoki "Nuqta qo'shish" tugmasini bosing{% else %}Click on the map on the right to add a delivery point, or click "Add Point" manually{% endif %}
                 </div>
                 <div id="deliveryPointsList"></div>
                 <div id="emptyPoints" style="text-align:center;padding:32px;color:var(--text-muted)">
                     <i class="fas fa-map-marker-alt" style="font-size:2rem;margin-bottom:8px;display:block;opacity:0.3"></i>
-                    {% if current_language == 'ru' %}Точки не добавлены{% elif current_language == 'uz' %}Nuqtalar qo\'shilmagan{% else %}No points added yet{% endif %}
+                    {% if current_language == 'ru' %}Точки не добавлены{% elif current_language == 'uz' %}Nuqtalar qo'shilmagan{% else %}No points added yet{% endif %}
                 </div>
             </div>
         </div>
     </div>
 
     <!-- RIGHT PANEL - MAP -->
-    <div style="position:sticky;top:calc(var(--nav-h) + 20px)">
+    <div class="map-panel" style="position:sticky;top:calc(var(--nav-h) + 20px)" class="map-sticky">
         <div class="card">
             <div class="card-header">
                 <h3 class="card-title"><i class="fas fa-map" style="color:var(--primary);margin-right:8px"></i>
                 {% if current_language == 'ru' %}Карта{% elif current_language == 'uz' %}Xarita{% else %}Map{% endif %}
                 </h3>
                 <span id="mapModeLabel" style="font-size:0.75rem;padding:4px 10px;background:var(--primary-light);color:var(--primary);border-radius:20px;font-weight:600">
-                    {% if current_language == 'ru' %}Режим просмотра{% elif current_language == 'uz' %}Ko\'rish rejimi{% else %}View Mode{% endif %}
+                    {% if current_language == 'ru' %}Режим просмотра{% elif current_language == 'uz' %}Ko'rish rejimi{% else %}View Mode{% endif %}
                 </span>
             </div>
             <div class="card-body" style="padding:0">
                 <div id="createMap" style="height:520px;border-radius:0 0 var(--radius) var(--radius)"></div>
             </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-lg" style="width:100%;margin-top:16px;justify-content:center" id="submitBtn">
+        <button type="submit" class="btn btn-primary btn-lg desktop-submit" style="width:100%;margin-top:16px;justify-content:center" id="submitBtn">
             <i class="fas fa-route"></i>
-            {% if current_language == 'ru' %}Создать маршрут{% elif current_language == 'uz' %}Yo\'nalish yaratish{% else %}Create Route{% endif %}
+            {% if current_language == 'ru' %}Создать маршрут{% elif current_language == 'uz' %}Yo'nalish yaratish{% else %}Create Route{% endif %}
         </button>
     </div>
+</div>
+
+<!-- Mobile fixed submit bar -->
+<div class="mobile-submit-bar">
+    <button type="submit" class="btn btn-primary btn-lg" id="submitBtnMobile">
+        <i class="fas fa-route"></i>
+        {% if current_language == 'ru' %}Создать маршрут{% elif current_language == 'uz' %}Yo'nalish yaratish{% else %}Create Route{% endif %}
+    </button>
 </div>
 </form>
 {% endblock %}
@@ -407,8 +442,11 @@ function removePoint(idx) {
 document.getElementById('routeForm').addEventListener('submit', function(e) {
     const points = document.querySelectorAll('[name="address[]"]');
     if (points.length === 0) { e.preventDefault(); alert('{% if current_language == "ru" %}Добавьте хотя бы одну точку доставки{% elif current_language == "uz" %}Kamida bitta yetkazib berish nuqtasini qo\'shing{% else %}Please add at least one delivery point{% endif %}'); return; }
-    document.getElementById('submitBtn').disabled = true;
-    document.getElementById('submitBtn').innerHTML = '<i class="fas fa-spinner fa-spin"></i> {% if current_language == "ru" %}Создание...{% elif current_language == "uz" %}Yaratilmoqda...{% else %}Creating...{% endif %}';
+    const btns = document.querySelectorAll('#submitBtn, #submitBtnMobile');
+    btns.forEach(btn => {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> {% if current_language == "ru" %}Создание...{% elif current_language == "uz" %}Yaratilmoqda...{% else %}Creating...{% endif %}';
+    });
 });
 </script>
 {% endblock %}
