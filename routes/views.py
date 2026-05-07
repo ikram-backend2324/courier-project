@@ -1,10 +1,8 @@
-import json
 import requests
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from django.conf import settings
 from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_exempt
 from .models import Courier, Route, DeliveryPoint
 
 
@@ -36,7 +34,6 @@ def route_create(request):
             language=language,
         )
 
-        # Save delivery points
         addresses = request.POST.getlist('address[]')
         lats = request.POST.getlist('lat[]')
         lngs = request.POST.getlist('lng[]')
@@ -49,7 +46,7 @@ def route_create(request):
             if addr.strip() and lats[i] and lngs[i]:
                 DeliveryPoint.objects.create(
                     route=route,
-                    order_number=order_numbers[i] if i < len(order_numbers) else f'#{i+1}',
+                    order_number=order_numbers[i] if i < len(order_numbers) else '#' + str(i + 1),
                     address=addr,
                     lat=float(lats[i]),
                     lng=float(lngs[i]),
@@ -78,59 +75,78 @@ def plan_with_ai(request, pk):
     if not points:
         return JsonResponse({'error': 'No delivery points'}, status=400)
 
-    # Build prompt based on language
+    # Build points lists outside f-strings (Python 3.11 doesn't allow backslashes in f-strings)
+    points_en_lines = []
+    points_ru_lines = []
+    points_uz_lines = []
+    for i, p in enumerate(points):
+        recipient_en = p.recipient_name if p.recipient_name else 'N/A'
+        recipient_ru = p.recipient_name if p.recipient_name else 'Не указан'
+        recipient_uz = p.recipient_name if p.recipient_name else "Noma'lum"
+        points_en_lines.append(
+            str(i + 1) + '. Order #' + p.order_number + ' - ' + p.address +
+            ' (lat: ' + str(p.lat) + ', lng: ' + str(p.lng) + ') - Recipient: ' + recipient_en
+        )
+        points_ru_lines.append(
+            str(i + 1) + '. Заказ #' + p.order_number + ' - ' + p.address +
+            ' (широта: ' + str(p.lat) + ', долгота: ' + str(p.lng) + ') - Получатель: ' + recipient_ru
+        )
+        points_uz_lines.append(
+            str(i + 1) + '. Buyurtma #' + p.order_number + ' - ' + p.address +
+            ' (kenglik: ' + str(p.lat) + ', uzunlik: ' + str(p.lng) + ') - Qabul qiluvchi: ' + recipient_uz
+        )
+
+    points_en = '\n'.join(points_en_lines)
+    points_ru = '\n'.join(points_ru_lines)
+    points_uz = '\n'.join(points_uz_lines)
+
+    start_address = route.courier_start_address or 'Unknown'
+    start_address_ru = route.courier_start_address or 'Не указано'
+    start_address_uz = route.courier_start_address or "Noma'lum"
+
     lang_prompts = {
         'en': {
             'system': 'You are an expert route optimization assistant for couriers in Uzbekistan. Always respond in English.',
-            'user': f"""Plan the optimal delivery route for courier "{route.courier.name}" ({route.courier.get_vehicle_display()}).
-
-Starting location: {route.courier_start_address or 'Unknown'} (lat: {route.courier_start_lat}, lng: {route.courier_start_lng})
-
-Delivery points:
-{chr(10).join([f'{i+1}. Order #{p.order_number} - {p.address} (lat: {p.lat}, lng: {p.lng}) - Recipient: {p.recipient_name or "N/A"}' for i, p in enumerate(points)])}
-
-Please provide:
-1. The optimal order to visit these delivery points (minimize backtracking and distance)
-2. Brief reasoning for your suggested route
-3. Estimated time savings compared to random order
-4. Any important tips for this route
-
-Respond in a clear, structured format."""
+            'user': (
+                'Plan the optimal delivery route for courier "' + route.courier.name + '" (' + route.courier.get_vehicle_display() + ').\n\n'
+                'Starting location: ' + start_address + ' (lat: ' + str(route.courier_start_lat) + ', lng: ' + str(route.courier_start_lng) + ')\n\n'
+                'Delivery points:\n' + points_en + '\n\n'
+                'Please provide:\n'
+                '1. The optimal order to visit these delivery points (minimize backtracking and distance)\n'
+                '2. Brief reasoning for your suggested route\n'
+                '3. Estimated time savings compared to random order\n'
+                '4. Any important tips for this route\n\n'
+                'Respond in a clear, structured format.'
+            ),
         },
         'ru': {
             'system': 'Вы эксперт по оптимизации маршрутов для курьеров в Узбекистане. Всегда отвечайте на русском языке.',
-            'user': f"""Спланируйте оптимальный маршрут доставки для курьера "{route.courier.name}" ({route.courier.get_vehicle_display()}).
-
-Начальная точка: {route.courier_start_address or 'Не указано'} (широта: {route.courier_start_lat}, долгота: {route.courier_start_lng})
-
-Точки доставки:
-{chr(10).join([f'{i+1}. Заказ #{p.order_number} - {p.address} (широта: {p.lat}, долгота: {p.lng}) - Получатель: {p.recipient_name or "Не указан"}' for i, p in enumerate(points)])}
-
-Пожалуйста, укажите:
-1. Оптимальный порядок посещения точек доставки (минимизация холостых поездок и расстояния)
-2. Краткое обоснование предложенного маршрута
-3. Примерная экономия времени по сравнению с произвольным порядком
-4. Важные советы для этого маршрута
-
-Ответьте в чётком структурированном формате."""
+            'user': (
+                'Спланируйте оптимальный маршрут доставки для курьера "' + route.courier.name + '" (' + route.courier.get_vehicle_display() + ').\n\n'
+                'Начальная точка: ' + start_address_ru + ' (широта: ' + str(route.courier_start_lat) + ', долгота: ' + str(route.courier_start_lng) + ')\n\n'
+                'Точки доставки:\n' + points_ru + '\n\n'
+                'Пожалуйста, укажите:\n'
+                '1. Оптимальный порядок посещения точек доставки (минимизация холостых поездок и расстояния)\n'
+                '2. Краткое обоснование предложенного маршрута\n'
+                '3. Примерная экономия времени по сравнению с произвольным порядком\n'
+                '4. Важные советы для этого маршрута\n\n'
+                'Ответьте в чётком структурированном формате.'
+            ),
         },
         'uz': {
             'system': "Siz O'zbekistonda kuryer yo'nalishlarini optimallashtirish bo'yicha mutaxasssissiz. Har doim o'zbek tilida javob bering.",
-            'user': f""""{route.courier.name}" kuryeri ({route.courier.get_vehicle_display()}) uchun optimal yetkazib berish yo'nalishini rejalashtiring.
-
-Boshlang'ich nuqta: {route.courier_start_address or 'Noma\'lum'} (kenglik: {route.courier_start_lat}, uzunlik: {route.courier_start_lng})
-
-Yetkazib berish nuqtalari:
-{chr(10).join([f'{i+1}. Buyurtma #{p.order_number} - {p.address} (kenglik: {p.lat}, uzunlik: {p.lng}) - Qabul qiluvchi: {p.recipient_name or "Noma\'lum"}' for i, p in enumerate(points)])}
-
-Iltimos, quyidagilarni ko'rsating:
-1. Yetkazib berish nuqtalarini tashrif buyurish uchun optimal tartib (ortiqcha yo'l yurishni kamaytirish)
-2. Taklif etilgan yo'nalish uchun qisqacha asoslash
-3. Tasodifiy tartibga nisbatan taxminiy vaqt tejash
-4. Bu yo'nalish uchun muhim maslahatlar
-
-Aniq, tuzilgan formatda javob bering."""
-        }
+            'user': (
+                '"' + route.courier.name + '" kuryeri (' + route.courier.get_vehicle_display() + ") uchun optimal yetkazib berish yo'nalishini rejalashtiring.\n\n"
+                "Boshlang'ich nuqta: " + start_address_uz + ' (kenglik: ' + str(route.courier_start_lat) + ', uzunlik: ' + str(route.courier_start_lng) + ')\n\n'
+                "Yetkazib berish nuqtalari:\n" + points_uz + '\n\n'
+                "Iltimos, quyidagilarni ko'rsating:\n"
+                "1. Yetkazib berish nuqtalarini tashrif buyurish uchun optimal tartib (ortiqcha yo'l yurishni kamaytirish)\n"
+                '2. Taklif etilgan yo\'nalish uchun qisqacha asoslash\n'
+                '3. Tasodifiy tartibga nisbatan taxminiy vaqt tejash\n'
+                '4. Bu yo\'nalish uchun muhim maslahatlar\n\n'
+                'Aniq, tuzilgan formatda javob bering.'
+            ),
+        },
     }
 
     lang = language if language in lang_prompts else 'en'
@@ -140,7 +156,7 @@ Aniq, tuzilgan formatda javob bering."""
         response = requests.post(
             'https://openrouter.ai/api/v1/chat/completions',
             headers={
-                'Authorization': f'Bearer {settings.OPENROUTER_API_KEY}',
+                'Authorization': 'Bearer ' + settings.OPENROUTER_API_KEY,
                 'Content-Type': 'application/json',
                 'HTTP-Referer': 'http://localhost:8000',
                 'X-Title': 'Courier Route Planner',
