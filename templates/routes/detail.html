@@ -241,7 +241,7 @@ const pts = [
 
 pts.forEach(function(p) {
     const pos = [p.lat, p.lng];
-    const marker = L.marker(pos, {icon: getIcon(p.seq, {{ 'true' if route.ai_response else 'false' }})}).addTo(detailMap);
+    const marker = L.marker(pos, {icon: getIcon(p.seq, {% if route.ai_response %}true{% else %}false{% endif %})}).addTo(detailMap);
     marker.bindPopup(`<strong>Order #${p.order}</strong><br>${p.addr}${p.recipient ? '<br>👤 ' + p.recipient : ''}`);
     bounds.push(pos);
 });
