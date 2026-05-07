@@ -80,10 +80,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
-OPENROUTER_MODEL = 'deepseek/deepseek-chat-v3-0324:free'
-
-# OPENROUTER_MODEL = 'microsoft/phi-3-mini-128k-instruct:free'
-
+OPENROUTER_MODEL = 'openrouter/auto'
 JAZZMIN_SETTINGS = {
     "site_title": "Courier Route Admin",
     "site_header": "Courier Route AI",
