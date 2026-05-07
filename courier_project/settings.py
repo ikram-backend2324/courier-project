@@ -7,8 +7,14 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
+
 DEBUG = True
+
 ALLOWED_HOSTS = ['*']
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://courier-project-cs6y.onrender.com',
+]
 
 INSTALLED_APPS = [
     'jazzmin',
