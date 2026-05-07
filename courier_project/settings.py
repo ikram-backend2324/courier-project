@@ -80,7 +80,9 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
-OPENROUTER_MODEL = 'meta-llama/llama-3.2-3b-instruct:free'
+# OPENROUTER_MODEL = 'meta-llama/llama-3.2-3b-instruct:free'
+
+OPENROUTER_MODEL = 'microsoft/phi-3-mini-128k-instruct:free'
 
 JAZZMIN_SETTINGS = {
     "site_title": "Courier Route Admin",
