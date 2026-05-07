@@ -4,27 +4,19 @@
 
 {% block extra_head %}
 <style>
-.route-status-bar { display:flex;align-items:center;gap:16px;padding:16px 20px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:20px;box-shadow:var(--shadow);flex-wrap:wrap; }
+.route-status-bar { display:flex;align-items:center;gap:16px;padding:16px 20px;background:var(--card);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:20px;box-shadow:var(--shadow); }
 .point-list-item { display:flex;align-items:flex-start;gap:14px;padding:14px;border-radius:10px;border:1.5px solid var(--border);margin-bottom:10px;background:var(--card);transition:all 0.2s; }
 .point-list-item:hover { border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light); }
 .seq-badge { width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0; }
 .seq-badge.ai-order { background:linear-gradient(135deg,#2563eb,#7c3aed);color:white; }
 .seq-badge.original { background:var(--bg);color:var(--text-muted);border:2px solid var(--border); }
 .ai-badge { display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:linear-gradient(135deg,#ede9fe,#dbeafe);color:#4c1d95;border-radius:20px;font-size:0.8rem;font-weight:700;border:1px solid #c4b5fd; }
-
-@media (max-width:768px) {
-    .detail-layout { display:flex !important; flex-direction:column !important; }
-    .detail-map-sticky { position:static !important; }
-    #detailMap { height:300px !important; }
-    .route-header-actions { flex-direction:column; align-items:flex-start !important; }
-    .route-header-buttons { display:flex; flex-wrap:wrap; gap:8px; }
-}
 </style>
 {% endblock %}
 
 {% block content %}
 <!-- ROUTE HEADER -->
-<div class="page-header route-header-actions" style="display:flex;align-items:flex-start;justify-content:space-between">
+<div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
     <div>
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
             <a href="/routes/" style="color:var(--text-muted);text-decoration:none;font-size:0.875rem">
@@ -44,7 +36,7 @@
             {% endif %}
         </div>
     </div>
-    <div class="route-header-buttons" style="display:flex;gap:8px;flex-shrink:0">
+    <div style="display:flex;gap:8px">
         {% if not route.ai_response %}
         <button class="btn btn-primary" id="planAiBtn" onclick="planWithAI()">
             <i class="fas fa-robot"></i>
@@ -59,7 +51,7 @@
     </div>
 </div>
 
-<div class="detail-layout" style="display:grid;grid-template-columns:1fr 400px;gap:20px;align-items:start">
+<div style="display:grid;grid-template-columns:1fr 400px;gap:20px;align-items:start">
     <!-- LEFT -->
     <div>
         <!-- AI RESPONSE -->
@@ -107,12 +99,12 @@
                     <div class="seq-badge {% if point.optimized_sequence %}ai-order{% else %}original{% endif %}">
                         {% if point.optimized_sequence %}{{ point.optimized_sequence }}{% else %}{{ forloop.counter }}{% endif %}
                     </div>
-                    <div style="flex:1;min-width:0">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:8px;flex-wrap:wrap">
+                    <div style="flex:1">
+                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
                             <strong style="font-size:0.9rem">Order #{{ point.order_number }}</strong>
                             <span class="badge badge-{{ point.status }}">{{ point.get_status_display }}</span>
                         </div>
-                        <div style="color:var(--text-muted);font-size:0.8rem;margin-bottom:4px;word-break:break-word">
+                        <div style="color:var(--text-muted);font-size:0.8rem;margin-bottom:4px">
                             <i class="fas fa-map-marker-alt" style="color:var(--danger);margin-right:4px"></i>{{ point.address }}
                         </div>
                         {% if point.recipient_name %}
@@ -136,7 +128,7 @@
     </div>
 
     <!-- RIGHT - MAP -->
-    <div class="detail-map-sticky" style="position:sticky;top:calc(var(--nav-h) + 20px)">
+    <div style="position:sticky;top:calc(var(--nav-h) + 20px)">
         <div class="card" style="margin-bottom:16px">
             <div class="card-header">
                 <h3 class="card-title"><i class="fas fa-map" style="color:var(--primary);margin-right:8px"></i>
@@ -155,30 +147,30 @@
                     {% if current_language == 'ru' %}Информация о маршруте{% elif current_language == 'uz' %}Yo'nalish ma'lumotlari{% else %}Route Info{% endif %}
                 </div>
                 <div style="display:flex;flex-direction:column;gap:8px;font-size:0.875rem">
-                    <div style="display:flex;justify-content:space-between;gap:8px">
+                    <div style="display:flex;justify-content:space-between">
                         <span style="color:var(--text-muted)">
                             {% if current_language == 'ru' %}Курьер{% elif current_language == 'uz' %}Kuryer{% else %}Courier{% endif %}
                         </span>
                         <strong>{{ route.courier.name }}</strong>
                     </div>
-                    <div style="display:flex;justify-content:space-between;gap:8px">
+                    <div style="display:flex;justify-content:space-between">
                         <span style="color:var(--text-muted)">
                             {% if current_language == 'ru' %}Транспорт{% elif current_language == 'uz' %}Transport{% else %}Vehicle{% endif %}
                         </span>
                         <strong>{{ route.courier.get_vehicle_display }}</strong>
                     </div>
-                    <div style="display:flex;justify-content:space-between;gap:8px">
+                    <div style="display:flex;justify-content:space-between">
                         <span style="color:var(--text-muted)">
                             {% if current_language == 'ru' %}Точек доставки{% elif current_language == 'uz' %}Yetkazib berish nuqtalari{% else %}Delivery Points{% endif %}
                         </span>
                         <strong>{{ points|length }}</strong>
                     </div>
                     {% if route.courier_start_address %}
-                    <div style="display:flex;justify-content:space-between;gap:8px">
-                        <span style="color:var(--text-muted);flex-shrink:0">
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="color:var(--text-muted)">
                             {% if current_language == 'ru' %}Старт{% elif current_language == 'uz' %}Boshlanish{% else %}Start{% endif %}
                         </span>
-                        <strong style="text-align:right;font-size:0.8rem;word-break:break-word">{{ route.courier_start_address }}</strong>
+                        <strong style="text-align:right;max-width:180px;font-size:0.8rem">{{ route.courier_start_address }}</strong>
                     </div>
                     {% endif %}
                     {% if route.notes %}
@@ -196,8 +188,8 @@
 </div>
 
 <!-- AI LOADING OVERLAY -->
-<div id="aiLoadingOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center">
-    <div style="background:white;border-radius:16px;padding:32px 24px;text-align:center;max-width:340px;width:90%;margin:0 16px">
+<div id="aiLoadingOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:none;align-items:center;justify-content:center">
+    <div style="background:white;border-radius:16px;padding:40px;text-align:center;max-width:360px;width:90%">
         <div class="spinner" style="width:48px;height:48px;margin:0 auto 16px;border-width:3px"></div>
         <div style="font-weight:700;font-size:1.1rem;margin-bottom:8px">
             {% if current_language == 'ru' %}ИИ анализирует маршрут...{% elif current_language == 'uz' %}AI yo'nalishni tahlil qilmoqda...{% else %}AI is analyzing your route...{% endif %}
@@ -279,31 +271,43 @@ function planWithAI() {
 
     fetch('/routes/{{ route.pk }}/plan-ai/', {
         method: 'POST',
-        headers: {'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json'},
+        headers: {
+            'X-CSRFToken': CSRF_TOKEN,
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'same-origin',
     })
-    .then(r => r.json())
-    .then(data => {
+    .then(function(r) {
+        if (!r.ok) {
+            return r.text().then(function(text) {
+                throw new Error('Server error ' + r.status + ': ' + text.substring(0, 200));
+            });
+        }
+        return r.json();
+    })
+    .then(function(data) {
         overlay.style.display = 'none';
         if (data.success) {
             const aiSection = document.getElementById('aiSection');
-            aiSection.innerHTML = `
-                <div class="ai-response-box" style="margin-bottom:20px">
-                    <div class="ai-response-header">
-                        <i class="fas fa-robot" style="font-size:1.2rem"></i>
-                        {% if current_language == 'ru' %}Рекомендация ИИ{% elif current_language == 'uz' %}AI tavsiyasi{% else %}AI Route Recommendation{% endif %}
-                        <span class="ai-badge"><i class="fas fa-magic"></i> AI Optimized</span>
-                    </div>
-                    <div class="ai-response-content">${data.response}</div>
-                </div>`;
+            aiSection.innerHTML =
+                '<div class="ai-response-box" style="margin-bottom:20px">' +
+                    '<div class="ai-response-header">' +
+                        '<i class="fas fa-robot" style="font-size:1.2rem"></i>' +
+                        '{% if current_language == "ru" %}Рекомендация ИИ{% elif current_language == "uz" %}AI tavsiyasi{% else %}AI Route Recommendation{% endif %}' +
+                        '<span class="ai-badge"><i class="fas fa-magic"></i> AI Optimized</span>' +
+                    '</div>' +
+                    '<div class="ai-response-content">' + data.response + '</div>' +
+                '</div>';
         } else {
             overlay.style.display = 'none';
             alert('Error: ' + (data.error || 'Unknown error'));
             if (btn) btn.disabled = false;
         }
     })
-    .catch(e => {
+    .catch(function(e) {
         overlay.style.display = 'none';
-        alert('Network error: ' + e.message);
+        alert('Error: ' + e.message);
         if (btn) btn.disabled = false;
     });
 }
